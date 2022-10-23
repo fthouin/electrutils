@@ -21,6 +21,17 @@ class sigGen:
             The message returned by the device
         '''
         return self.resource.query('*IDN?')
+    def getOutputStatus(self,channel=1):
+        '''
+        Queries the output state of a channel on the device
+        :return:
+            bool
+            True if the channel is on and False if not
+        '''
+        command=r':OUTP%d?'%channel
+        return self.resource.query(command)
+
+
     def setSine(self,channel=1,freq=100,ampl=2,offset=0,phase=0):
         '''
         Sets the waveform generator to output a sine of specified parameters
@@ -35,7 +46,7 @@ class sigGen:
         self.resource.write(command)
     def setSync(self,channel=1,status=True):
         '''
-        Sets the synchronisation mode of a channel
+        Sets the synchronisation mode of a channel, enabling or disabling the trigger output
         :param channel: (int) the channel to be configured
         :param status: (bool) selected wether to enable (True) or disable (False) the sync
         :return:

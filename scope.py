@@ -23,6 +23,29 @@ class Scope:
             The message returned by the device
         '''
         return self.resource.query('*IDN?')
+    def setTimeDiv(self,timeDiv,directCommand=None):
+        '''
+        Sets the time division to the closest possible value,rounding downwards. Available are:
+        1NS,2NS,5NS,10NS,20NS,50NS,100NS,200NS,500NS,1US,2US,5US,10US,20US,
+        50US,100US,200US,500US,1MS,2MS,5MS,10MS,20MS,50MS,100MS,200MS,500MS,1S,2S,5S,10S,20S,50S
+        See page 122 of programming manual
+        :param timeDiv: (float) value of the time divisions
+        :param directCommand: A string of the time division to get the exact value. For instance, '5NS' or '200MS'
+        :return: void
+        '''
+        if directCommand is None:
+            possibleDivs=[1e-9,1e-6,1e-3,1]
+            possibleUnits=['N','U','M','']
+            unit=''
+            indicesSmallerThanTimeDiv=[i for i,div in enumerate(possibleDivs) if timeDiv>div]
+            unit=possibleUnits[indicesSmallerThanTimeDiv[-1]]#The last one to have satisfied the condition in the loop is the one we need!
+            multiplier=str(int(timeDiv/possibleDivs[indicesSmallerThanTimeDiv[-1]]))
+            command = '*TDIV '+multiplier+unit+'S'
+            print(command)
+        else:
+            command = '*TDIV '+directCommand
+        self.resource.write(command)
+
     def getStatus(self):
         '''
         Queries the sampling status of the scope
@@ -33,8 +56,33 @@ class Scope:
             'SAST Armed'
         '''
         return self.resource.query('SAST?')
+    def getINR(self):
+        '''
+        Gets the scope's Internal state change register and clears it.
+        :return:
+        '''
+        command='*INR?'
+        return self.resource.query(command)
+
+    def isDone(self):
+        '''
+        Checks if the scope is done with it acquisition
+        :return:
+        '''
+        try:
+            status = self.getINR()
+        except:
+            status = 'Communication fault'
+        if 'INR 0' in status:
+            return True
+        else:
+            return False
+
     def isReady(self):
-        status=self.getStatus()
+        try:
+            status=self.getStatus()
+        except:
+            status='Communication fault'
         if 'Ready' in status or 'Armed' in status:
             return True
         else:
@@ -52,6 +100,21 @@ class Scope:
             outputString='D1M'
         command=r'C%d:CPL %s'%(channel,outputString)
         self.resource.write(command)
+    def wait(self,time=1):
+        '''
+        Stops the scope from doing anything until it has completed the current acquisition (p.146)
+        :return:
+        '''
+        command='WAIT %d'%time
+        self.resource.write(command)
+    def arm(self):
+        '''
+        Changes the acquisition mode from 'STOPPED' to 'SINGLE'. Useful to ready scope for the next acquisition.
+        :return:
+        '''
+        command='ARM'
+        self.resource.write(command)
+
     def setTrig(self,source='EX',type='EDGE',level=1,coupling='DC',mode='NORM',slope='POS'):
         '''
         Sets up the trigger parameters
@@ -74,11 +137,17 @@ class Scope:
         command='%s:TRSL %s'%(source,slope)
         self.resource.write(command)
     def setWaveAcq(self):
+        '''
+        Specifies the amount of data to be sent from the scope to the controller.
+        See page 144 of programming manual
+        :return: nuttin
+        '''
         command='*WFSU SP,0,FP,0'
         self.resource.write(command)
 
     def getWave(self,channel='C1'):
         descriptor=self.getDesc(channel=channel)
+        print(descriptor)
         descriptorOffset=21#Length of the C1:WF ALL,#9000000346 message
         #print(struct.unpack_from('21s8s8x3s13x',descriptor))
         (numDataPoints,)=struct.unpack_from('l',descriptor,offset=descriptorOffset+60)
