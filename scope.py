@@ -87,6 +87,14 @@ class Scope:
             return True
         else:
             return False
+    def stop(self):
+        '''
+        Stops all acquisitions!
+        :return:
+        '''
+        command='STOP'
+        self.resource.write(command)
+
     def setCoupling(self,channel=1,mode='DC'):
         '''
         Sets the channel coupling mode. (see UM p. 35)
@@ -147,7 +155,6 @@ class Scope:
 
     def getWave(self,channel='C1'):
         descriptor=self.getDesc(channel=channel)
-        print(descriptor)
         descriptorOffset=21#Length of the C1:WF ALL,#9000000346 message
         #print(struct.unpack_from('21s8s8x3s13x',descriptor))
         (numDataPoints,)=struct.unpack_from('l',descriptor,offset=descriptorOffset+60)
@@ -155,7 +162,6 @@ class Scope:
         (verticalOffset,)=struct.unpack_from('f',descriptor,offset=descriptorOffset+160)
         (horizInterval,)=struct.unpack_from('f',descriptor,offset=descriptorOffset+176)
         (horizOffset,)=struct.unpack_from('d',descriptor,offset=descriptorOffset+180)
-        print(horizOffset)
         command='%s:WF? DAT2'%channel
         self.resource.write(command)
         response=self.resource.read_raw()

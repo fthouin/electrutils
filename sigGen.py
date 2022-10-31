@@ -31,6 +31,15 @@ class sigGen:
         command=r':OUTP%d?'%channel
         return self.resource.query(command)
 
+    def setFrequency(self,channel=1,freq=100):
+        '''
+        Sets the output frequency of a given channel.
+        :param channel: (int) The channel number to configure. 1 or 2
+        :param freq: (int) The frequency of the sine in Hz
+        :return:
+        '''
+        command=r':SOUR%d:FREQ %f'%(channel,freq)
+        self.resource.write(command)
 
     def setSine(self,channel=1,freq=100,ampl=2,offset=0,phase=0):
         '''
@@ -44,6 +53,14 @@ class sigGen:
         '''
         command=r':SOUR%d:APPL:SIN %f,%f,%f,%f?'%(channel,freq,ampl,offset,phase)
         self.resource.write(command)
+    def queryWaveform(self,channel=1):
+        '''
+        Queries the waveform being output by the generator
+        '''
+        command=r':SOUR%d:APPL?'%(channel)
+        response=self.resource.query(command)
+        return response
+
     def setSync(self,channel=1,status=True):
         '''
         Sets the synchronisation mode of a channel, enabling or disabling the trigger output

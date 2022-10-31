@@ -23,23 +23,39 @@ def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
     wvgen.setSync(channel=1,status=True)
     wave1=[]
     wave2=[]
-    time1=[]
-    time2=[]
     #Check that the yScales are fine
+    wvgen.setOutput()
+    print('OUTPUT IS ON')
+    time.sleep(2)
+    wvgen.setSine(ampl=amplitude, offset=0.0)
+    print('GETTING WAVE1')
+    scp.wait()
+    scp.getWave(channel='C1')
+    print('GETTING WAVE2')
+    scp.getWave(channel='C2')
+    scp.wait()
     for freq in freqs:
         # Set the time scale
         period=1./freq
         div=period*numPeriods/18
         scp.setTimeDiv(timeDiv=div)
-        wvgen.setSine(ampl=amplitude, freq=freq, offset=0.0)
+        wvgen.setFrequency(channel=1,freq=freq)
+        print(wvgen.queryWaveform())
+        print('TIMEDIVSET')
+        print('FREQ OUTPUT SET')
         print('%.2e Hz'%freq)
-        wvgen.setOutput()
-        time.sleep(2*numPeriods*period)# Wait for a few periods to pass by
+        #time.sleep(2)
+        scp.stop()
         scp.arm()
-        time.sleep(2*numPeriods*period)# Wait for the acquisition to be over.
+        print('SCOPE ARMED')
+        scp.wait()
+        time.sleep(10*numPeriods*period+0.1)# Wait for the acquisition to be over.
         # Ideally, would have afunction call to check if that is the case, but a frequent call to scp.isDone() ends up overfilling the registers and bricking the scope.
+        print('GETTING WAVE1')
         data1, t1 = scp.getWave(channel='C1')
+        print('GETTING WAVE2')
         data2, t2 = scp.getWave(channel='C2')
+        print('APPENDING')
         wave1.append(Wave(data1,t1))
         wave2.append(Wave(data2,t2))
     wvgen.setOutput(status=False)
