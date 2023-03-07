@@ -2,6 +2,39 @@ from sigGen import sigGen
 from scope import Scope
 import time
 from waveform import Wave
+def singleAcq(scp,channels='both'):
+    '''
+    Sets the oscilloscope up for a single acquisiton, waits for a trigger and returns the waveforms.
+    :param scp:
+    :return:
+        wave: The waveform stored in channel 1
+        wave: The waveform stored in channel 2
+    '''
+#    scp.setTrig(mode='SINGLE')
+#    scp.setWaveAcq()
+#    scp.stop()
+#    scp.arm()
+#    print('SCOPE ARMED')
+#    #scp.wait()
+#    while not scp.isReady():
+#        print('chillin')
+#        time.sleep(100e-3)
+    if channels=='both':
+        data1, t1 = scp.getWave(channel='C1')
+        data2, t2 = scp.getWave(channel='C2')
+        wave1 = Wave(data1, t1)
+        wave2 = Wave(data2, t2)
+    elif channels=='C1':
+        data1, t1 = scp.getWave(channel='C1')
+        wave1 = Wave(data1, t1)
+        wave2 = None
+    elif channels=='C2':
+        data2, t2 = scp.getWave(channel='C2')
+        wave2 = Wave(data2, t2)
+        wave1 = None
+
+    return wave1,wave2
+
 
 def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
     '''
@@ -26,14 +59,13 @@ def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
     #Check that the yScales are fine
     wvgen.setOutput()
     print('OUTPUT IS ON')
-    time.sleep(2)
     wvgen.setSine(ampl=amplitude, offset=0.0)
     print('GETTING WAVE1')
     scp.wait()
     scp.getWave(channel='C1')
     print('GETTING WAVE2')
     scp.getWave(channel='C2')
-    scp.wait()
+    #scp.wait()
     for freq in freqs:
         # Set the time scale
         period=1./freq
@@ -46,10 +78,10 @@ def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
         print('%.2e Hz'%freq)
         #time.sleep(2)
         scp.stop()
+        scp.wait()
         scp.arm()
         print('SCOPE ARMED')
-        scp.wait()
-        time.sleep(10*numPeriods*period+0.1)# Wait for the acquisition to be over.
+        #time.sleep(10*numPeriods*period+0.1)# Wait for the acquisition to be over.
         # Ideally, would have afunction call to check if that is the case, but a frequent call to scp.isDone() ends up overfilling the registers and bricking the scope.
         print('GETTING WAVE1')
         data1, t1 = scp.getWave(channel='C1')

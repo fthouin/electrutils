@@ -1,5 +1,4 @@
 import pyvisa
-
 class sigGen:
     idString='DG8'
     def __init__(self):
@@ -40,6 +39,16 @@ class sigGen:
         '''
         command=r':SOUR%d:FREQ %f'%(channel,freq)
         self.resource.write(command)
+        return self.getFrequency()
+    def getFrequency(self,channel=1):
+        '''
+        Gets the output frequency of a given channel.
+        :param channel: (int) The channel number to configure. 1 or 2
+        :return:
+        str: the frequency of the channel
+        '''
+        command=r':SOUR%d:FREQ?'%(channel)
+        return self.resource.query(command)
 
     def setSine(self,channel=1,freq=100,ampl=2,offset=0,phase=0):
         '''
@@ -50,9 +59,11 @@ class sigGen:
         :param offset: (float) The DC offset of the sine in V
         :param phase: (float) The phase offset of the sine in degrees
         :return:
+        str:the waveform type as wel as its frequency, amplitude, phase and offset
         '''
         command=r':SOUR%d:APPL:SIN %f,%f,%f,%f?'%(channel,freq,ampl,offset,phase)
         self.resource.write(command)
+        return self.queryWaveform()
     def queryWaveform(self,channel=1):
         '''
         Queries the waveform being output by the generator
@@ -74,14 +85,42 @@ class sigGen:
             outputString = 'OFF'
         command=r':OUTP%d:SYNC %s'%(channel,outputString)
         self.resource.write(command)
+        return self.getSync()
+    def getSync(self,channel=1):
+        '''
+        Queries the status of the channel's SYNC output
+        :param channel:1 or 2
+        :return:
+        The status of the channel<s sync output (str)
+        '''
+        command=r':OUTP%d:SYNC?'%(channel)
+        return self.resource.query(command)
 
     def setOutput(self,channel=1,status=True):
+        '''
+        Sets the output of the specified channel ON or OFF
+        :param channel: the channel to set
+        :param status: the desired status. True (bool) for On
+        :return:
+        :param status: the channel's status after the operation
+        '''
         if status:
             outputString='ON'
         else:
             outputString='OFF'
         command=r':OUTP%d %s'%(channel,outputString)
         self.resource.write(command)
+        return self.getOutput()
+    def getOutput(self,channel=1):
+        '''
+        Gets the output of the specified channel ON or OFF
+        :param channel: the channel to set
+        :return:
+        :param status: the channel's status
+        '''
+        command=r':OUTP%d?'%(channel)
+        return self.resource.query(command)
+
     def close(self):
         '''
         Gracefully closes the communication

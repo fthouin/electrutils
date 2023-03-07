@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft,fftfreq
 from scipy.signal import windows
+from electrools import todBAmp
 class Wave:
 
     def __init__(self,data,t):
@@ -45,10 +46,13 @@ class Wave:
         if axs is None:
             fig,axs=plt.subplots(2,1,sharex='col')
         f,s=self.getPositiveSpectrum()
-        axs[0].plot(f,np.abs(s))
-        axs[0].set_ylabel('R')
-        axs[0].set_yscale('log')
-        axs[1].plot(f,np.angle(s,deg=True))
+        magnitude=todBAmp(np.abs(s))
+        axs[0].plot(f,magnitude)
+        axs[0].set_ylabel('R (dBV)')
+        axs[1].plot(f[magnitude>-80],np.angle(s[magnitude>-80],deg=True),'d')
         axs[1].set_ylabel('$\phi$')
         axs[1].set_xlabel('Frequency (Hz)')
+        axs[0].set_xscale('log')
+        [ax.grid(which='Major', linestyle='-') for ax in axs]
+        [ax.grid(which='Minor', linestyle=':') for ax in axs]
         return axs

@@ -1,6 +1,6 @@
+import time
 import pyvisa
 import struct
-
 class Scope:
     idString='SDS'
     def __init__(self):
@@ -8,6 +8,7 @@ class Scope:
         Connect to the SDS scope by scanning the ressources seen by PyVisa
         Check that the scope is set to USBTMC mode in its Utility menu.
         '''
+        time.sleep(0)
         rm=pyvisa.ResourceManager('@py')
         resList=rm.list_resources()
         for resID in resList:
@@ -45,6 +46,15 @@ class Scope:
         else:
             command = '*TDIV '+directCommand
         self.resource.write(command)
+        return self.getTimeDiv()
+    def getTimeDiv(self):
+        '''
+        Returns the current time division
+        :return:
+        the current time division. See page 122
+        '''
+        command = 'TDIV?'
+        return self.resource.query(command)
 
     def getStatus(self):
         '''
@@ -55,7 +65,19 @@ class Scope:
             'SAST Trig'd'
             'SAST Armed'
         '''
-        return self.resource.query('SAST?')
+
+        self.resource.write('SAST?')
+        status=None
+        numCalls=0
+        while status is None and numCalls<1000:
+            try:
+                status=self.resource.read()
+            except:
+                numCalls=numCalls+1
+            time.sleep(0.001)
+        if status is None:
+            status='No answer from ressource (scope)'
+        return status
     def getINR(self):
         '''
         Gets the scope's Internal state change register and clears it.
@@ -79,13 +101,20 @@ class Scope:
             return False
 
     def isReady(self):
-        try:
-            status=self.getStatus()
-        except:
-            status='Communication fault'
-        if 'Ready' in status or 'Armed' in status:
+        '''
+        Checks if the scope is Ready for the next acquisition.
+        :return:
+        bool: true if the scope is ready.
+        '''
+        #try:
+        #    status=self.getStatus()
+        #except:
+        #    status='Communication fault'
+        status = self.getStatus()
+        if 'Stop' in status:
             return True
         else:
+            #print(status)
             return False
     def stop(self):
         '''
@@ -94,6 +123,7 @@ class Scope:
         '''
         command='STOP'
         self.resource.write(command)
+        return self.getStatus()
 
     def setCoupling(self,channel=1,mode='DC'):
         '''
@@ -108,6 +138,24 @@ class Scope:
             outputString='D1M'
         command=r'C%d:CPL %s'%(channel,outputString)
         self.resource.write(command)
+        return self.getCoupling(channel=channel)
+
+    def getCoupling(self,channel=1):
+        '''
+        Gets the channel's coupling mode. (see UM p. 35)
+        :param channel: (int) the channel to be queried (default is 1)
+        :return:
+        '''
+        command=r'C%d:CPL?'%(channel)
+        coupling=self.resource.query(command)
+        return coupling
+
+    def comDelay(self):
+        '''
+        Sets a buffer time to be executed after write commands
+
+        :return:
+        '''
     def wait(self,time=1):
         '''
         Stops the scope from doing anything until it has completed the current acquisition (p.146)
@@ -122,8 +170,9 @@ class Scope:
         '''
         command='ARM'
         self.resource.write(command)
+        #return self.getStatus()
 
-    def setTrig(self,source='EX',type='EDGE',level=1,coupling='DC',mode='NORM',slope='POS'):
+    def setTrig(self,source=None,type=None,level=None,coupling=None,mode=None,slope=None):
         '''
         Sets up the trigger parameters
         :param source: (str, {EX,EX/5,C1,C2}) Channel from which to get the trigger signal from
@@ -132,18 +181,49 @@ class Scope:
         :param coupling: (str,{AC,DC}) Coupling to the trigger channel
         :param mode: (str, {NORM, AUTO, SINGLE}) Sets the behavior of the trigger following events
         :param slope: (str,{POS,NEG,WINDOW}) Triggers on rising, falling or Window.
+        Setting any of these parameters to None leaves them unchanged
         :return:
         '''
-        command='TRSE %s,SR,%s,HT,TI'%(type,source)
-        self.resource.write(command)
-        command='TRMD %s'%(mode)
-        self.resource.write(command)
-        command='%s:TRLV %f'%(source,level)
-        self.resource.write(command)
-        command='%s:TRCP %s'%(source,coupling)
-        self.resource.write(command)
-        command='%s:TRSL %s'%(source,slope)
-        self.resource.write(command)
+        if source is not None:
+            if type is not None:
+                command='TRSE %s,SR,%s,HT,TI'%(type,source)
+                self.resource.write(command)
+            if level is not None:
+                command='%s:TRLV %f'%(source,level)
+                self.resource.write(command)
+            if coupling is not None:
+                command = '%s:TRCP %s' % (source, coupling)
+                self.resource.write(command)
+            if slope is not None:
+                command = '%s:TRSL %s' % (source, slope)
+                self.resource.write(command)
+            if all([variable is None for variable in [slope,coupling,level,type]]):
+                print('Trigger source specified without any atttribute.')
+                print('|-> No trigger source related settings applied')
+        if any([variable is not None for variable in [slope, coupling, level, type]]) and source is None :
+            print('Attributes specified without any trigger source.')
+            print('|-> No trigger source related settings applied')
+        if mode is not None:
+            command='TRMD %s'%(mode)
+            self.resource.write(command)
+        self.getTrigMode()# Ca a lair complique de mettre un string de retour pertinent alors cest juste pour
+        # attendre que la commande d<avant soit termine
+    def getTrigMode(self):
+        '''
+        Gets the trigger mode parameters
+        :return: A string describing the trigger mode (see p. 131)
+
+        '''
+        command = 'TRMD?'
+        self.resource.query(command)
+    def getWaveAcq(self):
+        '''
+        Queries the amount of data to be sent from the scope to the controller.
+        See page 144 of programming manual
+        :return: nuttin
+        '''
+        command='WFSU?'
+        return self.resource.query(command)
     def setWaveAcq(self):
         '''
         Specifies the amount of data to be sent from the scope to the controller.
@@ -152,8 +232,19 @@ class Scope:
         '''
         command='*WFSU SP,0,FP,0'
         self.resource.write(command)
+        return self.getWaveAcq()
 
     def getWave(self,channel='C1'):
+        '''
+        Recovers the waveforms in the oscilloscope
+        :param channel: the channel from which to get the waveform
+        :return:
+            list of float: the data contained in the waveform
+            list of float: the time associated with each point since the trigger event
+        '''
+        import time
+        while not self.isReady():
+            time.sleep(0.005)
         descriptor=self.getDesc(channel=channel)
         descriptorOffset=21#Length of the C1:WF ALL,#9000000346 message
         #print(struct.unpack_from('21s8s8x3s13x',descriptor))
