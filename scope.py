@@ -172,7 +172,7 @@ class Scope:
         self.resource.write(command)
         #return self.getStatus()
 
-    def setTrig(self,source=None,type=None,level=None,coupling=None,mode=None,slope=None):
+    def setTrig(self,source=None,type='EDGE',level=None,coupling=None,mode=None,slope=None):
         '''
         Sets up the trigger parameters
         :param source: (str, {EX,EX/5,C1,C2}) Channel from which to get the trigger signal from
@@ -188,15 +188,19 @@ class Scope:
             if type is not None:
                 command='TRSE %s,SR,%s,HT,TI'%(type,source)
                 self.resource.write(command)
+                self.getTrigMode()  # Ca a lair complique de mettre un string de retour pertinent alors cest juste pour
             if level is not None:
                 command='%s:TRLV %f'%(source,level)
                 self.resource.write(command)
+                self.getTrigMode()  # Ca a lair complique de mettre un string de retour pertinent alors cest juste pour
             if coupling is not None:
                 command = '%s:TRCP %s' % (source, coupling)
                 self.resource.write(command)
+                self.getTrigMode()  # Ca a lair complique de mettre un string de retour pertinent alors cest juste pour
             if slope is not None:
                 command = '%s:TRSL %s' % (source, slope)
                 self.resource.write(command)
+                self.getTrigMode()  # Ca a lair complique de mettre un string de retour pertinent alors cest juste pour
             if all([variable is None for variable in [slope,coupling,level,type]]):
                 print('Trigger source specified without any atttribute.')
                 print('|-> No trigger source related settings applied')

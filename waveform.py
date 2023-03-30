@@ -36,7 +36,7 @@ class Wave:
         f=f[1:self.N//2]
         s=s[1:self.N//2]
         return f,s
-    def plotSpectrum(self,axs=None,coord='polar'):
+    def plotSpectrum(self,axs=None,coord='polar',label=None):
         '''
         Plots the spectrum of the waveform
         :param fig: Figure in which to plot the spectrum
@@ -47,7 +47,7 @@ class Wave:
             fig,axs=plt.subplots(2,1,sharex='col')
         f,s=self.getPositiveSpectrum()
         magnitude=todBAmp(np.abs(s))
-        axs[0].plot(f,magnitude)
+        axs[0].plot(f,magnitude,label=label)
         axs[0].set_ylabel('R (dBV)')
         axs[1].plot(f[magnitude>-80],np.angle(s[magnitude>-80],deg=True),'d')
         axs[1].set_ylabel('$\phi$')
@@ -55,4 +55,18 @@ class Wave:
         axs[0].set_xscale('log')
         [ax.grid(which='Major', linestyle='-') for ax in axs]
         [ax.grid(which='Minor', linestyle=':') for ax in axs]
+        return axs
+    def plotData(self,axs=None,label=None):
+        '''
+        Plots the data in time in the specified axes. If none are specified, a new figure is made
+        :param axs:
+        :return:
+        '''
+        if axs is None:
+            fig, axs = plt.subplots(1, 1)
+        axs.plot(1000*np.array(self.t),self.data,label=label)
+        axs.set_xlabel('Time since epoch [ms]')
+        axs.set_ylabel('Voltage [V]')
+        axs.grid(which='Major', linestyle='-')
+        axs.grid(which='Minor', linestyle=':')
         return axs

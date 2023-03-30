@@ -36,7 +36,7 @@ def singleAcq(scp,channels='both'):
     return wave1,wave2
 
 
-def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
+def freqSweep(scp,wvgen,freqs,amplitude,offset=0.,numPeriods=10):
     '''
     Performs a frequency sweep measurement and records the signals read on the oscilloscope
     :param scp: Scope object associated to the oscilloscope used for the experiment
@@ -51,7 +51,7 @@ def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
     '''
     scp.setCoupling(channel=1, mode='AC')
     scp.setCoupling(channel=2, mode='AC')
-    scp.setTrig(mode='SINGLE')
+    scp.setTrig(mode='SINGLE',source='EX')
     scp.setWaveAcq()
     wvgen.setSync(channel=1,status=True)
     wave1=[]
@@ -59,7 +59,7 @@ def freqSweep(scp,wvgen,freqs,amplitude,numPeriods=10):
     #Check that the yScales are fine
     wvgen.setOutput()
     print('OUTPUT IS ON')
-    wvgen.setSine(ampl=amplitude, offset=0.0)
+    wvgen.setSine(ampl=amplitude, offset=offset)
     print('GETTING WAVE1')
     scp.wait()
     scp.getWave(channel='C1')
