@@ -30,6 +30,25 @@ class sigGen:
         command=r':OUTP%d?'%channel
         return self.resource.query(command)
 
+    def setImpendance(self,channel=1,impedance=50):
+        '''
+        Sets the output impedance of a given channel.
+        :param channel: (int) The channel number to configure. 1 or 2
+        :param freq: (int) The impedance in Ohms
+        :return:
+        '''
+        command=r':OUTP%d:IMP %f'%(channel,impedance)
+        self.resource.write(command)
+        return self.getImpedance()
+    def getImpedance(self,channel=1):
+        '''
+        Gets the output impedance of a given channel.
+        :param channel: (int) The channel number to configure. 1 or 2
+        :return:
+        str: the impedance of the channel
+        '''
+        command=r':OUTP%d:IMP?'%(channel)
+        return self.resource.query(command)
     def setFrequency(self,channel=1,freq=100):
         '''
         Sets the output frequency of a given channel.

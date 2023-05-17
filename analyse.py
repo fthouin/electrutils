@@ -43,6 +43,16 @@ class freqSweepData():
         axs=self.waveIn[index].plotSpectrum(label='Wave In')
         self.waveOut[index].plotSpectrum(axs=axs,label='Wave Out')
         axs[0].legend()
+    def swap(self):
+        '''
+        Swaps the wave in and wave out
+        :return:
+        '''
+        swappedWaveIn=self.waveOut
+        swappedWaveOut= self.waveIn
+        self.waveOut=swappedWaveOut
+        self.waveIn=swappedWaveIn
+
     def plotData(self,index):
         '''
         Plots the data contained in the given index

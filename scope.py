@@ -124,6 +124,36 @@ class Scope:
         command='STOP'
         self.resource.write(command)
         return self.getStatus()
+    def setVDiv(self,sensitivity,channel=1):
+        '''
+        Sets the vertical sentivity of a channel (UM p.139)
+        :param channel: the channel to be affected
+        :param sensitivity: the sentivity in V (D/div on the scope)
+        :return:
+        '''
+        senstivity = sensitivity * 1000
+        validSens = [2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]
+        closestSens=min(validSens,key=lambda x: abs(x-senstivity))
+        if closestSens<1:
+            scale=int(closestSens)
+            units='MV'
+        else:
+            closestSens=int(closestSens/1000)
+            scale=closestSens
+            units='V'
+        command=r'C%d:VDIV %d%s'%(channel,scale,units)
+        self.resource.write(command)
+        return self.getVDiv(channel=channel)
+
+    def getVDiv(self,channel=1):
+        '''
+        Sets the vertical sentivity of a channel (UM p.139)
+        :param channel: (int) the channel to be queried (default is 1)
+        :return:
+        '''
+        command=r'C%d:VDIV?'%(channel)
+        vdiv=self.resource.query(command)
+        return vdiv
 
     def setCoupling(self,channel=1,mode='DC'):
         '''
@@ -218,8 +248,10 @@ class Scope:
         :return: A string describing the trigger mode (see p. 131)
 
         '''
-        command = 'TRMD?'
-        self.resource.query(command)
+        command = '*TRMD?'
+        self.resource.write(command)
+        return self.resource.read_raw()
+
     def getWaveAcq(self):
         '''
         Queries the amount of data to be sent from the scope to the controller.
@@ -227,7 +259,8 @@ class Scope:
         :return: nuttin
         '''
         command='WFSU?'
-        return self.resource.query(command)
+        self.resource.write(command)
+        return self.resource.read_raw()
     def setWaveAcq(self):
         '''
         Specifies the amount of data to be sent from the scope to the controller.
