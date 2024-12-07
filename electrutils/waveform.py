@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import fft,fftfreq
 from scipy.signal import windows
-from electrools import todBAmp
+from electrutils.electrools import todBAmp
 class Wave:
 
     def __init__(self,data,t):

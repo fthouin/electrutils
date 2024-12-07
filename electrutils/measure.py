@@ -1,24 +1,12 @@
-from sigGen import sigGen
-from scope import Scope
-import time
-from waveform import Wave
+from electrutils.waveform import Wave
 def singleAcq(scp,channels='both'):
     '''
     Sets the oscilloscope up for a single acquisiton, waits for a trigger and returns the waveforms.
-    :param scp:
+    :param scp: The instantiation of a pyMeasure scope (SDS1072CML)
     :return:
         wave: The waveform stored in channel 1
         wave: The waveform stored in channel 2
     '''
-#    scp.setTrig(mode='SINGLE')
-#    scp.setWaveAcq()
-#    scp.stop()
-#    scp.arm()
-#    print('SCOPE ARMED')
-#    #scp.wait()
-#    while not scp.isReady():
-#        print('chillin')
-#        time.sleep(100e-3)
     if channels=='both':
         data1, t1 = scp.getWave(channel='C1')
         data2, t2 = scp.getWave(channel='C2')
