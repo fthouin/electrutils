@@ -1,10 +1,10 @@
 # Classes to store and plot the results of distinct experiments performed on guitar pedals
-from waveform import Wave
+from electrutils.waveform import Wave
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import pickle
-import electrools as et
+import electrutils.electrools as et
 
 
 class freqSweepData():

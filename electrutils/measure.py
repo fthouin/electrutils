@@ -1,5 +1,7 @@
 from electrutils.waveform import Wave
-def singleAcq(scp,channels='both'):
+import time
+import numpy as np
+def singleAcq(scp):
     '''
     Sets the oscilloscope up for a single acquisiton, waits for a trigger and returns the waveforms.
     :param scp: The instantiation of a pyMeasure scope (SDS1072CML)
@@ -7,20 +9,10 @@ def singleAcq(scp,channels='both'):
         wave: The waveform stored in channel 1
         wave: The waveform stored in channel 2
     '''
-    if channels=='both':
-        data1, t1 = scp.getWave(channel='C1')
-        data2, t2 = scp.getWave(channel='C2')
-        wave1 = Wave(data1, t1)
-        wave2 = Wave(data2, t2)
-    elif channels=='C1':
-        data1, t1 = scp.getWave(channel='C1')
-        wave1 = Wave(data1, t1)
-        wave2 = None
-    elif channels=='C2':
-        data2, t2 = scp.getWave(channel='C2')
-        wave2 = Wave(data2, t2)
-        wave1 = None
-
+    t1,data1= scp.channel_1.get_waveform()
+    t2,data2= scp.channel_2.get_waveform()
+    wave1 = Wave(t1,data1)
+    wave2 = Wave(t2, data2)
     return wave1,wave2
 
 
@@ -37,46 +29,50 @@ def freqSweep(scp,wvgen,freqs,amplitude,offset=0.,numPeriods=10):
     list of ndarray
         A list of all the waveforms measured on CH2
     '''
-    scp.setCoupling(channel=1, mode='AC')
-    scp.setCoupling(channel=2, mode='AC')
-    scp.setTrig(mode='SINGLE',source='EX')
-    scp.setWaveAcq()
-    wvgen.setSync(channel=1,status=True)
-    wave1=[]
-    wave2=[]
+
+    wvgen.channel_1.output_enabled=False
+    trig_dict=scp.trigger.get_trigger_config()
+    trig_dict['source']='EX'
+    trig_dict['level']=0
+    trig_dict['mode']='SINGLE'
+    trig_dict['slope']='POS'
+    scp.trigger.set_trigger_config(**trig_dict)
+    scp.channel_1.coupling='AC'
+    scp.channel_2.coupling='AC'
+    wvgen.channel_1.sync_enabled=True
+    waves1=[]
+    waves2=[]
     #Check that the yScales are fine
-    wvgen.setOutput()
-    print('OUTPUT IS ON')
-    wvgen.setSine(ampl=amplitude, offset=offset)
-    print('GETTING WAVE1')
-    scp.wait()
-    scp.getWave(channel='C1')
-    print('GETTING WAVE2')
-    scp.getWave(channel='C2')
-    #scp.wait()
+    wvgen.channel_1.sine=freqs[0],amplitude,offset,0
+    wvgen.channel_1.output_enabled=True
+    pause=0.1
     for freq in freqs:
         # Set the time scale
         period=1./freq
         div=period*numPeriods/18
-        scp.setTimeDiv(timeDiv=div)
-        wvgen.setFrequency(channel=1,freq=freq)
-        print(wvgen.queryWaveform())
-        print('TIMEDIVSET')
-        print('FREQ OUTPUT SET')
-        print('%.2e Hz'%freq)
-        #time.sleep(2)
-        scp.stop()
-        scp.wait()
-        scp.arm()
-        print('SCOPE ARMED')
-        #time.sleep(10*numPeriods*period+0.1)# Wait for the acquisition to be over.
+        scp.time_division=div
+        scp.wait(pause)
+        time.sleep(pause)
+        wvgen.channel_1.frequency=freq
+        scp.arm() 
+        #time.sleep(np.max([18*div,0.2]))
+        print(wvgen.channel_1.waveform)
+        scp.wait(pause)
+        time.sleep(pause)
+        Wave(*scp.channel_1.get_waveform())
+        waves1.append(Wave(*scp.channel_1.get_waveform()))
+        scp.wait(pause)
+        time.sleep(pause)
+       # if scp.arm():
+       #     print('SCOPE ARMED')
+       # #for i in range(3):
+       # while not scp.is_ready:
+       #     time.sleep(0.01)
+       # scp.arm()
         # Ideally, would have afunction call to check if that is the case, but a frequent call to scp.isDone() ends up overfilling the registers and bricking the scope.
-        print('GETTING WAVE1')
-        data1, t1 = scp.getWave(channel='C1')
-        print('GETTING WAVE2')
-        data2, t2 = scp.getWave(channel='C2')
-        print('APPENDING')
-        wave1.append(Wave(data1,t1))
-        wave2.append(Wave(data2,t2))
-    wvgen.setOutput(status=False)
-    return wave1,wave2
+        Wave(*scp.channel_2.get_waveform())
+        waves2.append(Wave(*scp.channel_2.get_waveform()))
+        scp.wait(pause)
+        time.sleep(pause)
+    wvgen.channel_1.output_enabled=False
+    return waves1,waves2

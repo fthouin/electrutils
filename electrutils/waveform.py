@@ -5,7 +5,7 @@ from scipy.signal import windows
 from electrutils.electrools import todBAmp
 class Wave:
 
-    def __init__(self,data,t):
+    def __init__(self,t,data):
         self.t=t
         self.data=data
         self.N = len(self.t)
